@@ -479,6 +479,8 @@ class ComponentInterface {
    * @brief Subscribe to u-blox messages and publish to ROS topics.
    */
   virtual void subscribe() = 0;
+
+  virtual bool checkNavPvtTimeout() = 0;
 };
 
 typedef boost::shared_ptr<ComponentInterface> ComponentPtr;
@@ -539,6 +541,9 @@ class UbloxNode : public virtual ComponentInterface {
    * @brief Initialize the diagnostic updater and add the fix diagnostic.
    */
   void initializeRosDiagnostics();
+
+
+  bool checkNavPvtTimeout() { return true; }
 
   /**
    * @brief Print an INF message to the ROS console.
@@ -669,6 +674,7 @@ class UbloxNode : public virtual ComponentInterface {
 
   //! raw data stream logging
   RawDataStreamPa rawDataStreamPa_;
+
 };
 
 /**
@@ -713,6 +719,8 @@ class UbloxFirmware6 : public UbloxFirmware {
    * @brief Subscribe to NavPVT, RxmRAW, and RxmSFRB messages.
    */
   void subscribe();
+
+  bool checkNavPvtTimeout() { return true; }
 
  protected:
   /**
@@ -785,6 +793,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
    * @param m the message to publish
    */
   void callbackNavPvt(const NavPVT& m) {
+    navpvt_callback_time_ = ros::Time::now();
     if(enabled["nav_pvt"]) {
       // NavPVT publisher
       static ros::Publisher publisher = nh->advertise<NavPVT>("navpvt",
@@ -946,6 +955,22 @@ class UbloxFirmware7Plus : public UbloxFirmware {
     stat.add("# SVs used", (int)last_nav_pvt_.numSV);
   }
 
+
+  bool checkNavPvtTimeout() {
+    //初回のみ現在時刻を入れる
+    if(navpvt_callback_time_.sec <= 0.1){
+      navpvt_callback_time_ = ros::Time::now();
+      return true;
+    }
+    //10秒間 navpvtのcallbackこなかった(fixをpubしてなかった)らfalseを返す
+    ros::Time now = ros::Time::now();
+    ros::Duration ros_duration = now - navpvt_callback_time_;
+    if(ros_duration.sec > 10.0){
+      return false;
+    }
+    return true;
+  }
+
   //! The last received NavPVT message
   NavPVT last_nav_pvt_;
   // Whether or not to enable the given GNSS
@@ -959,6 +984,9 @@ class UbloxFirmware7Plus : public UbloxFirmware {
   bool enable_sbas_;
   //! The QZSS Signal configuration, see CfgGNSS message
   uint32_t qzss_sig_cfg_;
+
+  //! 最後にNavPVTcallbackがあった時間
+  ros::Time navpvt_callback_time_;
 };
 
 /**
@@ -1028,6 +1056,7 @@ class UbloxFirmware8 : public UbloxFirmware7Plus<ublox_msgs::NavPVT> {
    * on user settings.
    */
   void subscribe();
+  
 
  private:
   // Set from ROS parameters
@@ -1079,10 +1108,14 @@ class RawDataProduct: public virtual ComponentInterface {
    */
   void subscribe();
 
+
+  bool checkNavPvtTimeout(){return true;}
+
   /**
    * @brief Adds frequency diagnostics for RTCM topics.
    */
   void initializeRosDiagnostics();
+  
 
  private:
   //! Topic diagnostic updaters
@@ -1118,6 +1151,9 @@ class AdrUdrProduct: public virtual ComponentInterface {
    * parameters.
    */
   void subscribe();
+
+
+  bool checkNavPvtTimeout(){return true;}
 
   /**
    * @brief Initialize the ROS diagnostics for the ADR/UDR device.
@@ -1167,6 +1203,8 @@ class FtsProduct: public virtual ComponentInterface {
    */
   void subscribe() {}
 
+  bool checkNavPvtTimeout(){return true;}
+
   /**
    * @brief Adds diagnostic updaters for FTS status.
    * @todo Currently unimplemented.
@@ -1207,6 +1245,8 @@ class HpgRefProduct: public virtual ComponentInterface {
    * @details Subscribe to NavSVIN messages based on user parameters.
    */
   void subscribe();
+
+  bool checkNavPvtTimeout(){return true;}
 
   /**
    * @brief Add diagnostic updaters for the TMODE3 status.
@@ -1318,6 +1358,9 @@ class HpgRovProduct: public virtual ComponentInterface {
    */
   void subscribe();
 
+  bool checkNavPvtTimeout(){return true;}
+
+
   /**
    * @brief Add diagnostic updaters for rover GNSS status, including
    * status of RTCM messages.
@@ -1357,6 +1400,9 @@ class HpPosRecProduct: public virtual HpgRefProduct {
    * @brief Subscribe to Rover messages, such as NavRELPOSNED.
    */
   void subscribe();
+
+  bool checkNavPvtTimeout(){return true;}
+
 
  protected:
 
@@ -1401,6 +1447,8 @@ class TimProduct: public virtual ComponentInterface {
    * @details Subscribes to RxmRAWX & RxmSFRBX messages.
    */
   void subscribe();
+
+  bool checkNavPvtTimeout(){return true;}
 
   /**
    * @brief Adds diagnostic updaters for Time Sync status.
