@@ -132,6 +132,7 @@ class AsyncWorker : public Worker {
   Callback write_callback_; //!< Callback function to handle raw data
 
   bool stopping_; //!< Whether or not the I/O service is closed
+  int read_error_cnt_;
 };
 
 template <typename StreamT>
@@ -143,6 +144,7 @@ AsyncWorker<StreamT>::AsyncWorker(boost::shared_ptr<StreamT> stream,
   io_service_ = io_service;
   in_.resize(buffer_size);
   in_buffer_size_ = 0;
+  read_error_cnt_ = 0;
 
   out_.reserve(buffer_size);
 
@@ -251,7 +253,12 @@ void AsyncWorker<StreamT>::readEnd(const boost::system::error_code& error,
     ROS_ERROR("U-Blox ASIO input buffer read error: %s, %li",
               error.message().c_str(),
               bytes_transfered);
+    read_error_cnt_++;
+    if(read_error_cnt_ > 100){
+      throw std::runtime_error(std::string("U-Blox ASIO input buffer read error"));
+    }
   } else if (bytes_transfered > 0) {
+    read_error_cnt_ = 0;
     in_buffer_size_ += bytes_transfered;
 
     unsigned char *pRawDataStart = &(*(in_.begin() + (in_buffer_size_ - bytes_transfered)));

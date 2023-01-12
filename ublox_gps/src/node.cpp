@@ -249,6 +249,11 @@ void UbloxNode::pollMessages(const ros::TimerEvent& event) {
   if (payload[0] > 32) {
     payload[0] = 1;
   }
+
+  for (int i = 0; i < components_.size(); i++)
+    if(!components_[i]->checkNavPvtTimeout()){
+      throw std::runtime_error(std::string("Nav Pvt callback timeout"));
+    }
 }
 
 void UbloxNode::printInf(const ublox_msgs::Inf &m, uint8_t id) {
@@ -583,6 +588,11 @@ void UbloxNode::initialize() {
 
   if (configureUblox()) {
     ROS_INFO("U-Blox configured successfully.");
+    for (int i = 0; i < components_.size(); i++)
+      if(!components_[i]->checkNavPvtTimeout()){
+        throw std::runtime_error(std::string("Nav Pvt callback timeout"));
+      }
+
     // Subscribe to all U-Blox messages
     subscribe();
     // Configure INF messages (needs INF params, call after subscribing)
