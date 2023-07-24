@@ -510,9 +510,9 @@ class UbloxNode : public virtual ComponentInterface {
   //! [s] 5Hz diagnostic period
   constexpr static float kDiagnosticPeriod = 0.2;
   //! Tolerance for Fix topic frequency as percentage of target frequency
-  constexpr static double kFixFreqTol = 0.15;
+  constexpr static double kFixFreqTol = 0.3;
   //! Window [num messages] for Fix Frequency Diagnostic
-  constexpr static double kFixFreqWindow = 10;
+  constexpr static double kFixFreqWindow = 25;
   //! Minimum Time Stamp Status for fix frequency diagnostic
   constexpr static double kTimeStampStatusMin = 0;
 
