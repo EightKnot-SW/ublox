@@ -508,7 +508,7 @@ class UbloxNode : public virtual ComponentInterface {
   constexpr static double kPollDuration = 1.0;
   // Constants used for diagnostic frequency updater
   //! [s] 5Hz diagnostic period
-  constexpr static float kDiagnosticPeriod = 0.2;
+  constexpr static float kDiagnosticPeriod = 0.5; //2Hz
   //! Tolerance for Fix topic frequency as percentage of target frequency
   constexpr static double kFixFreqTol = 0.3;
   //! Window [num messages] for Fix Frequency Diagnostic
